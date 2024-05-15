@@ -1,7 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
-import { z } from "zod";
+import { logger } from "hono/logger";
 import {
 	paymasterClientV06,
 	paymasterClientV07,
@@ -20,6 +20,7 @@ import { getPimlicoContext } from "./providers";
 const provider = urlToProvider(env.PAYMASTER_SERVICE_URL);
 
 const app = new Hono();
+app.use(logger());
 
 app.get("/", (c) => {
 	return c.html(

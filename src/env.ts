@@ -6,7 +6,10 @@ config();
 
 export const env = createEnv({
 	server: {
-		PORT: z.number().default(3000),
+		PORT: z
+			.string()
+			.transform((val) => Number(val))
+			.default("3000"),
 		PAYMASTER_SERVICE_URL: z.string().url(),
 		ENTRYPOINT_V06_ENABLED: z.boolean().default(true),
 		ENTRYPOINT_V07_ENABLED: z.boolean().default(true),
