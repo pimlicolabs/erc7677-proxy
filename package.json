@@ -1,0 +1,19 @@
+{
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.11.1",
+    "@t3-oss/env-core": "^0.10.1",
+    "hono": "^4.3.7",
+    "permissionless": "^0.1.29",
+    "viem": "^2.10.5",
+    "zod": "^3.23.8",
+    "zod-validation-error": "^3.3.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.7.3",
+    "@types/node": "^20.11.17",
+    "tsx": "^4.7.1"
+  }
+}
