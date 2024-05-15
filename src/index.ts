@@ -14,16 +14,30 @@ import {
 	type UserOperation,
 } from "permissionless";
 import { fromZodError } from "zod-validation-error";
-import { createClient, http, type Chain } from "viem";
+import type { Chain } from "viem";
 import { env } from "./env";
-import { pimlicoPaymasterActions } from "permissionless/actions/pimlico";
 import { getPimlicoContext } from "./providers";
 const provider = urlToProvider(env.PAYMASTER_SERVICE_URL);
 
 const app = new Hono();
 
 app.get("/", (c) => {
-	return c.text("Hello World!\n\nThis is an ERC-7677 Paymaster Service Proxy.");
+	return c.html(
+		`<html>
+            <head>
+                <meta name="color-scheme" content="light dark">
+            </head>
+            <body>
+                <pre style="word-wrap: break-word; white-space: pre-wrap;">
+Hello World!
+                    
+This is an ERC-7677 Paymaster Service Proxy.
+                    
+Visit <a href="https://github.com/pimlicolabs/erc7677-proxy">the GitHub repository</a> for more information on configuring your proxy.
+                </pre>
+            </body>
+        </html>`,
+	);
 });
 
 app.post(
@@ -61,7 +75,7 @@ app.post(
 		if (entrypoint === ENTRYPOINT_ADDRESS_V06 && env.ENTRYPOINT_V06_ENABLED) {
 			if (method === "pm_getPaymasterStubData") {
 				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				let providerContext: Record<string, any> = {};
+				let providerContext: Record<string, any> | null = null;
 
 				if (provider === "pimlico") {
 					providerContext = await getPimlicoContext(
@@ -93,7 +107,7 @@ app.post(
 		if (entrypoint === ENTRYPOINT_ADDRESS_V07 && env.ENTRYPOINT_V07_ENABLED) {
 			if (method === "pm_getPaymasterStubData") {
 				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				let providerContext: Record<string, any> = {};
+				let providerContext: Record<string, any> | null = null;
 
 				if (provider === "pimlico") {
 					providerContext = await getPimlicoContext(
@@ -128,7 +142,7 @@ app.post(
 	},
 );
 
-const port = 3000;
+const port = env.PORT;
 console.log(`Server is running on port ${port}`);
 
 serve({

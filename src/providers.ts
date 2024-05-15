@@ -1,13 +1,9 @@
 import { createClient, http } from "viem";
 import { env } from "./env";
-import { ENTRYPOINT_ADDRESS_V06, type UserOperation } from "permissionless";
+import type { UserOperation } from "permissionless";
 import { pimlicoPaymasterActions } from "permissionless/actions/pimlico";
-import type {
-	ENTRYPOINT_ADDRESS_V06_TYPE,
-	ENTRYPOINT_ADDRESS_V07_TYPE,
-	EntryPoint,
-	GetEntryPointVersion,
-} from "permissionless/types";
+import type { EntryPoint, GetEntryPointVersion } from "permissionless/types";
+import { z } from "zod";
 
 export async function getPimlicoContext<entryPoint extends EntryPoint>(
 	userOperation: UserOperation<GetEntryPointVersion<entryPoint>>,
@@ -19,12 +15,47 @@ export async function getPimlicoContext<entryPoint extends EntryPoint>(
 		transport: http(env.PAYMASTER_SERVICE_URL),
 	}).extend(pimlicoPaymasterActions(entryPoint));
 
-	const sponsorshipPolicyIds = extraParam ?? env.EXTRA_CONTEXT;
+	const extraParamParsed = z
+		.union([
+			z.object({
+				sponsorshipPolicyIds: z.array(z.string()),
+			}),
+			z.object({
+				sponsorshipPolicyId: z.string(),
+			}),
+		])
+		.nullable()
+		.optional()
+		.transform((v) => v ?? null)
+		.safeParse(extraParam);
+
+	let dappSponsorshipPolicies: string[];
+	if (!extraParamParsed.success || !extraParamParsed.data) {
+		dappSponsorshipPolicies = [];
+	} else {
+		dappSponsorshipPolicies =
+			"sponsorshipPolicyIds" in extraParamParsed.data
+				? extraParamParsed.data.sponsorshipPolicyIds
+				: [extraParamParsed.data.sponsorshipPolicyId];
+	}
+
+	if (env.PIMLICO_SPONSORSHIP_POLICY_IDS) {
+		dappSponsorshipPolicies = new Array(
+			...new Set([
+				...dappSponsorshipPolicies,
+				...env.PIMLICO_SPONSORSHIP_POLICY_IDS,
+			]),
+		);
+	}
+
+	if (dappSponsorshipPolicies.length === 0) {
+		return null;
+	}
 
 	const validSponsorshipPolicies =
 		await pimlicoClient.validateSponsorshipPolicies({
 			userOperation: userOperation,
-			sponsorshipPolicyIds: env.EXTRA_CONTEXT,
+			sponsorshipPolicyIds: dappSponsorshipPolicies,
 		});
 
 	return {
