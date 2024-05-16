@@ -76,6 +76,8 @@ app.post(
 			);
 		}
 
+		console.log(`<-- method ${method} chainId ${chainId} entryPoint ${entrypoint} extraParam ${extraParam}`)
+
 		if (entrypoint === ENTRYPOINT_ADDRESS_V06 && env.ENTRYPOINT_V06_ENABLED) {
 			if (method === "pm_getPaymasterStubData") {
 				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -93,9 +95,10 @@ app.post(
 					userOperation: userOperation as UserOperation<"v0.6">,
 					chain: { id: Number(chainId) } as Chain,
 					context: { ...extraParam, ...providerContext },
-				});		
+				});
 
-				return c.json({ result: {...result, sponsor: {name: "ERC-7677 proxy", icon: "https://upload.wikimedia.org/wikipedia/en/c/cc/Wojak_cropped.jpg"}}, id: request.id, jsonrpc: request.jsonrpc });
+				console.log(`--> result ${result}`)
+				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 
 			if (method === "pm_getPaymasterData") {
@@ -104,7 +107,9 @@ app.post(
 					chain: { id: Number(chainId) } as Chain,
 					context: extraParam,
 				});
-				return c.json({ result: {...result, sponsor: {name: "ERC-7677 proxy", icon: "https://upload.wikimedia.org/wikipedia/en/c/cc/Wojak_cropped.jpg"}}, id: request.id, jsonrpc: request.jsonrpc });
+
+				console.log(`--> result ${result}`)
+				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 		}
 
@@ -126,6 +131,8 @@ app.post(
 					chain: { id: Number(chainId) } as Chain,
 					context: { ...extraParam, ...providerContext },
 				});
+
+				console.log(`--> result ${result}`)
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 
@@ -138,6 +145,8 @@ app.post(
 					chain: { id: Number(chainId) } as Chain,
 					context: extraParam,
 				});
+
+				console.log(`--> result ${result}`)
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 		}
