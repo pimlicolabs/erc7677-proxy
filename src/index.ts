@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { handle } from "@hono/node-server/vercel";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { logger } from "hono/logger";
@@ -58,6 +59,7 @@ app.post(
 	}),
 	async (c) => {
 		const request = c.req.valid("json");
+		console.log(request);
 		const method = request.method;
 		const [userOperation, entrypoint, chainId, extraParam] = request.params;
 
@@ -146,7 +148,4 @@ app.post(
 const port = env.PORT;
 console.log(`Server is running on port ${port}`);
 
-serve({
-	fetch: app.fetch,
-	port,
-});
+export default handle(app);
