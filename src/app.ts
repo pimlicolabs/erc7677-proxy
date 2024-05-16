@@ -80,7 +80,6 @@ app.post(
 
 		if (entrypoint === ENTRYPOINT_ADDRESS_V06 && env.ENTRYPOINT_V06_ENABLED) {
 			if (method === "pm_getPaymasterStubData") {
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 				let providerContext: Record<string, any> | null = null;
 
 				if (provider === "pimlico") {
@@ -102,10 +101,20 @@ app.post(
 			}
 
 			if (method === "pm_getPaymasterData") {
+				let providerContext: Record<string, any> | null = null;
+
+				if (provider === "pimlico") {
+					providerContext = await getPimlicoContext(
+						userOperation as UserOperation<"v0.6">,
+						entrypoint,
+						extraParam,
+					);
+				}
+
 				const result = await paymasterClientV06.getPaymasterData({
 					userOperation: userOperation as UserOperation<"v0.6">,
 					chain: { id: Number(chainId) } as Chain,
-					context: extraParam,
+					context: { ...extraParam, ...providerContext },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`)
@@ -137,13 +146,23 @@ app.post(
 			}
 
 			if (method === "pm_getPaymasterData") {
+				let providerContext: Record<string, any> | null = null;
+
+				if (provider === "pimlico") {
+					providerContext = await getPimlicoContext(
+						userOperation as UserOperation<"v0.7">,
+						entrypoint,
+						extraParam,
+					);
+				}
+			
 				const result = await paymasterClientV07.getPaymasterData({
 					userOperation: userOperation as UserOperation<"v0.7"> & {
 						paymasterVerificationGasLimit: bigint;
 						paymasterPostOpGasLimit: bigint;
 					},
 					chain: { id: Number(chainId) } as Chain,
-					context: extraParam,
+					context: { ...extraParam, ...providerContext },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`)
