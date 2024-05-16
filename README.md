@@ -1,5 +1,7 @@
 # ERC-7677 Proxy Template
 
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/pfCJqF?referralCode=itQ_Ia)
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpimlicolabs%2Ferc7677-proxy)
 
 ## Overview

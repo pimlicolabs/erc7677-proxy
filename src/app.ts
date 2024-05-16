@@ -95,9 +95,9 @@ app.post(
 					context: { ...extraParam, ...providerContext },
 				});
 
+				
 
-
-				return c.json({ result: { ...result, sponsor: {name: "ERC-7677 proxy test", icon: "https://upload.wikimedia.org/wikipedia/en/c/cc/Wojak_cropped.jpg"}}, id: request.id, jsonrpc: request.jsonrpc });
+				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 
 			if (method === "pm_getPaymasterData") {
