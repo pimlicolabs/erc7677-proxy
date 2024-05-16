@@ -58,6 +58,10 @@ export async function getPimlicoContext<entryPoint extends EntryPoint>(
 			sponsorshipPolicyIds: dappSponsorshipPolicies,
 		});
 
+	if (validSponsorshipPolicies.length === 0) {
+		return null;
+	}
+
 	return {
 		sponsorshipPolicyId: validSponsorshipPolicies[0].sponsorshipPolicyId,
 	};
