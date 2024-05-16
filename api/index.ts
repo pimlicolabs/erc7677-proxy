@@ -41,6 +41,10 @@ Visit <a href="https://github.com/pimlicolabs/erc7677-proxy">the GitHub reposito
 	);
 });
 
+app.get("/health", (c) => {
+	return c.text("OK");
+});
+
 app.post(
 	"/api/paymaster",
 	validator("json", (value, c) => {
