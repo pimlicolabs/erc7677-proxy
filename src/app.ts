@@ -97,7 +97,7 @@ app.post(
 					context: { ...extraParam, ...providerContext },
 				});
 
-				console.log(`--> result ${result}`)
+				console.log(`--> result ${JSON.stringify(result)}`)
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 
@@ -108,7 +108,7 @@ app.post(
 					context: extraParam,
 				});
 
-				console.log(`--> result ${result}`)
+				console.log(`--> result ${JSON.stringify(result)}`)
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 		}
@@ -132,7 +132,7 @@ app.post(
 					context: { ...extraParam, ...providerContext },
 				});
 
-				console.log(`--> result ${result}`)
+				console.log(`--> result ${JSON.stringify(result)}`)
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 
@@ -146,7 +146,7 @@ app.post(
 					context: extraParam,
 				});
 
-				console.log(`--> result ${result}`)
+				console.log(`--> result ${JSON.stringify(result)}`)
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 		}
