@@ -1,4 +1,4 @@
-import { serve } from "@hono/node-server";
+import { handle } from "hono/vercel";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { logger } from "hono/logger";
@@ -6,8 +6,8 @@ import {
 	paymasterClientV06,
 	paymasterClientV07,
 	urlToProvider,
-} from "./config";
-import { erc7677RequestSchema, jsonRpcSchema } from "./schemas";
+} from "../config";
+import { erc7677RequestSchema, jsonRpcSchema } from "../schemas";
 import {
 	ENTRYPOINT_ADDRESS_V06,
 	ENTRYPOINT_ADDRESS_V07,
@@ -15,8 +15,8 @@ import {
 } from "permissionless";
 import { fromZodError } from "zod-validation-error";
 import type { Chain } from "viem";
-import { env } from "./env";
-import { getPimlicoContext } from "./providers";
+import { env } from "../env";
+import { getPimlicoContext } from "../providers";
 const provider = urlToProvider(env.PAYMASTER_SERVICE_URL);
 
 const app = new Hono();
@@ -144,10 +144,4 @@ app.post(
 	},
 );
 
-const port = env.PORT;
-console.log(`Server is running on port ${port}`);
-
-serve({
-	fetch: app.fetch,
-	port,
-});
+export default handle(app);
