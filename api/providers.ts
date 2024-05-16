@@ -1,5 +1,5 @@
 import { createClient, http } from "viem";
-import { env } from "./env";
+import { env } from "./env.js";
 import type { UserOperation } from "permissionless";
 import { pimlicoPaymasterActions } from "permissionless/actions/pimlico";
 import type { EntryPoint, GetEntryPointVersion } from "permissionless/types";
