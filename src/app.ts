@@ -93,11 +93,9 @@ app.post(
 					userOperation: userOperation as UserOperation<"v0.6">,
 					chain: { id: Number(chainId) } as Chain,
 					context: { ...extraParam, ...providerContext },
-				});
+				});		
 
-				
-
-				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
+				return c.json({ result: {...result, sponsor: {name: "ERC-7677 proxy", icon: "https://upload.wikimedia.org/wikipedia/en/c/cc/Wojak_cropped.jpg"}}, id: request.id, jsonrpc: request.jsonrpc });
 			}
 
 			if (method === "pm_getPaymasterData") {
@@ -106,7 +104,7 @@ app.post(
 					chain: { id: Number(chainId) } as Chain,
 					context: extraParam,
 				});
-				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
+				return c.json({ result: {...result, sponsor: {name: "ERC-7677 proxy", icon: "https://upload.wikimedia.org/wikipedia/en/c/cc/Wojak_cropped.jpg"}}, id: request.id, jsonrpc: request.jsonrpc });
 			}
 		}
 
