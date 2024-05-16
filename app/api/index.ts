@@ -1,4 +1,4 @@
-import { handle } from "hono/vercel";
+import { handle } from "@hono/node-server/vercel";
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { logger } from "hono/logger";
@@ -144,4 +144,5 @@ app.post(
 	},
 );
 
-export default handle(app);
+export const GET = handle(app);
+export const POST = handle(app);
