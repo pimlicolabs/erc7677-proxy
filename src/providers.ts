@@ -17,7 +17,7 @@ const isTestnet = (chainId: number) => {
 	return false;
 };
 
-type PimlicoContextResult =
+export type PimlicoContextResult =
 	| {
 			result: "sponsor";
 			extraParam: { sponsorshipPolicyId: string } | null;
