@@ -11,7 +11,7 @@ const serverSchema = {
 		.transform((val) => Number(val))
 		.default("3000")
 		.describe("The port the server will listen on"),
-	PIMLICO_API_KEY: z.string().describe("The Pimlico API key"),
+	PIMLICO_API_KEY: z.string().describe("Your Pimlico API key"),
 	PIMLICO_SPONSORSHIP_POLICY_IDS: z
 		.string()
 		.transform((val) => val.split(","))
