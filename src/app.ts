@@ -100,7 +100,16 @@ app.post(
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`);
-				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
+				return c.json({
+					result: {
+						...result,
+						sponsor: {
+							name: "Pimlico",
+						},
+					},
+					id: request.id,
+					jsonrpc: request.jsonrpc,
+				});
 			}
 
 			if (method === "pm_getPaymasterData") {
