@@ -4,15 +4,16 @@ import type { UserOperation } from "permissionless";
 import { pimlicoPaymasterActions } from "permissionless/actions/pimlico";
 import type { EntryPoint, GetEntryPointVersion } from "permissionless/types";
 import { z } from "zod";
+import { getPimlicoUrl } from "./config.js";
 
 export async function getPimlicoContext<entryPoint extends EntryPoint>(
 	userOperation: UserOperation<GetEntryPointVersion<entryPoint>>,
 	entryPoint: entryPoint,
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	extraParam: any,
+	chainId: bigint,
+	extraParam: unknown,
 ) {
 	const pimlicoClient = createClient({
-		transport: http(env.PAYMASTER_SERVICE_URL),
+		transport: http(getPimlicoUrl(chainId)),
 	}).extend(pimlicoPaymasterActions(entryPoint));
 
 	const extraParamParsed = z

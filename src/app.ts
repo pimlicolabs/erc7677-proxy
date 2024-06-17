@@ -1,11 +1,6 @@
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { logger } from "hono/logger";
-import {
-	paymasterClientV06,
-	paymasterClientV07,
-	urlToProvider,
-} from "./config.js";
 import { erc7677RequestSchema, jsonRpcSchema } from "./schemas.js";
 import {
 	ENTRYPOINT_ADDRESS_V06,
@@ -13,10 +8,11 @@ import {
 	type UserOperation,
 } from "permissionless";
 import { fromZodError } from "zod-validation-error";
-import type { Chain } from "viem";
+import { createClient, http, type Chain } from "viem";
 import { env } from "./env.js";
 import { getPimlicoContext } from "./providers.js";
-const provider = urlToProvider(env.PAYMASTER_SERVICE_URL);
+import { paymasterActionsEip7677 } from "permissionless/experimental";
+import { getPimlicoUrl } from "./config.js";
 
 const app = new Hono();
 app.use(logger());
@@ -42,7 +38,7 @@ Visit <a href="https://github.com/pimlicolabs/erc7677-proxy">the GitHub reposito
 
 app.get("/health", (c) => {
 	return c.text("OK");
-})
+});
 
 app.post(
 	"/api/paymaster",
@@ -76,19 +72,26 @@ app.post(
 			);
 		}
 
-		console.log(`<-- method ${method} chainId ${chainId} entryPoint ${entrypoint} extraParam ${extraParam}`)
+		console.log(
+			`<-- method ${method} chainId ${chainId} entryPoint ${entrypoint} extraParam ${extraParam}`,
+		);
 
 		if (entrypoint === ENTRYPOINT_ADDRESS_V06 && env.ENTRYPOINT_V06_ENABLED) {
-			if (method === "pm_getPaymasterStubData") {
-				let providerContext: Record<string, any> | null = null;
+			const paymasterClientV06 = createClient({
+				transport: http(getPimlicoUrl(chainId)),
+			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V06));
 
-				if (provider === "pimlico") {
-					providerContext = await getPimlicoContext(
-						userOperation as UserOperation<"v0.6">,
-						entrypoint,
-						extraParam,
-					);
-				}
+			if (method === "pm_getPaymasterStubData") {
+				let providerContext: {
+					sponsorshipPolicyId: string;
+				} | null = null;
+
+				providerContext = await getPimlicoContext(
+					userOperation as UserOperation<"v0.6">,
+					entrypoint,
+					chainId,
+					extraParam,
+				);
 
 				const result = await paymasterClientV06.getPaymasterStubData({
 					userOperation: userOperation as UserOperation<"v0.6">,
@@ -96,20 +99,21 @@ app.post(
 					context: { ...extraParam, ...providerContext },
 				});
 
-				console.log(`--> result ${JSON.stringify(result)}`)
+				console.log(`--> result ${JSON.stringify(result)}`);
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 
 			if (method === "pm_getPaymasterData") {
-				let providerContext: Record<string, any> | null = null;
+				let providerContext: {
+					sponsorshipPolicyId: string;
+				} | null = null;
 
-				if (provider === "pimlico") {
-					providerContext = await getPimlicoContext(
-						userOperation as UserOperation<"v0.6">,
-						entrypoint,
-						extraParam,
-					);
-				}
+				providerContext = await getPimlicoContext(
+					userOperation as UserOperation<"v0.6">,
+					entrypoint,
+					chainId,
+					extraParam,
+				);
 
 				const result = await paymasterClientV06.getPaymasterData({
 					userOperation: userOperation as UserOperation<"v0.6">,
@@ -117,23 +121,27 @@ app.post(
 					context: { ...extraParam, ...providerContext },
 				});
 
-				console.log(`--> result ${JSON.stringify(result)}`)
+				console.log(`--> result ${JSON.stringify(result)}`);
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 		}
 
 		if (entrypoint === ENTRYPOINT_ADDRESS_V07 && env.ENTRYPOINT_V07_ENABLED) {
-			if (method === "pm_getPaymasterStubData") {
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				let providerContext: Record<string, any> | null = null;
+			const paymasterClientV07 = createClient({
+				transport: http(getPimlicoUrl(chainId)),
+			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V07));
 
-				if (provider === "pimlico") {
-					providerContext = await getPimlicoContext(
-						userOperation as UserOperation<"v0.7">,
-						entrypoint,
-						extraParam,
-					);
-				}
+			if (method === "pm_getPaymasterStubData") {
+				let providerContext: {
+					sponsorshipPolicyId: string;
+				} | null = null;
+
+				providerContext = await getPimlicoContext(
+					userOperation as UserOperation<"v0.7">,
+					entrypoint,
+					chainId,
+					extraParam,
+				);
 
 				const result = await paymasterClientV07.getPaymasterStubData({
 					userOperation: userOperation as UserOperation<"v0.7">,
@@ -141,21 +149,22 @@ app.post(
 					context: { ...extraParam, ...providerContext },
 				});
 
-				console.log(`--> result ${JSON.stringify(result)}`)
+				console.log(`--> result ${JSON.stringify(result)}`);
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 
 			if (method === "pm_getPaymasterData") {
-				let providerContext: Record<string, any> | null = null;
+				let providerContext: {
+					sponsorshipPolicyId: string;
+				} | null = null;
 
-				if (provider === "pimlico") {
-					providerContext = await getPimlicoContext(
-						userOperation as UserOperation<"v0.7">,
-						entrypoint,
-						extraParam,
-					);
-				}
-			
+				providerContext = await getPimlicoContext(
+					userOperation as UserOperation<"v0.7">,
+					entrypoint,
+					chainId,
+					extraParam,
+				);
+
 				const result = await paymasterClientV07.getPaymasterData({
 					userOperation: userOperation as UserOperation<"v0.7"> & {
 						paymasterVerificationGasLimit: bigint;
@@ -165,7 +174,7 @@ app.post(
 					context: { ...extraParam, ...providerContext },
 				});
 
-				console.log(`--> result ${JSON.stringify(result)}`)
+				console.log(`--> result ${JSON.stringify(result)}`);
 				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
 			}
 		}
