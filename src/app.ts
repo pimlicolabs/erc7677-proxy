@@ -82,52 +82,47 @@ app.post(
 			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V06));
 
 			if (method === "pm_getPaymasterStubData") {
-				let providerContext: {
-					sponsorshipPolicyId: string;
-				} | null = null;
-
-				providerContext = await getPimlicoContext(
+				const providerContextResult = await getPimlicoContext(
 					userOperation as UserOperation<"v0.6">,
 					entrypoint,
 					chainId,
 					extraParam,
 				);
 
+				if (providerContextResult.result === "reject") {
+					return c.text("Rejected", 403);
+				}
+
 				const result = await paymasterClientV06.getPaymasterStubData({
 					userOperation: userOperation as UserOperation<"v0.6">,
 					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContext },
+					context: { ...providerContextResult.extraParam },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`);
 				return c.json({
-					result: {
-						...result,
-						sponsor: {
-							name: "Pimlico",
-						},
-					},
+					result,
 					id: request.id,
 					jsonrpc: request.jsonrpc,
 				});
 			}
 
 			if (method === "pm_getPaymasterData") {
-				let providerContext: {
-					sponsorshipPolicyId: string;
-				} | null = null;
-
-				providerContext = await getPimlicoContext(
+				const providerContextResult = await getPimlicoContext(
 					userOperation as UserOperation<"v0.6">,
 					entrypoint,
 					chainId,
 					extraParam,
 				);
 
+				if (providerContextResult.result === "reject") {
+					return c.text("Rejected", 403);
+				}
+
 				const result = await paymasterClientV06.getPaymasterData({
 					userOperation: userOperation as UserOperation<"v0.6">,
 					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContext },
+					context: { ...providerContextResult.extraParam },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`);
@@ -141,21 +136,21 @@ app.post(
 			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V07));
 
 			if (method === "pm_getPaymasterStubData") {
-				let providerContext: {
-					sponsorshipPolicyId: string;
-				} | null = null;
-
-				providerContext = await getPimlicoContext(
+				const providerContextResult = await getPimlicoContext(
 					userOperation as UserOperation<"v0.7">,
 					entrypoint,
 					chainId,
 					extraParam,
 				);
 
+				if (providerContextResult.result === "reject") {
+					return c.text("Rejected", 403);
+				}
+
 				const result = await paymasterClientV07.getPaymasterStubData({
 					userOperation: userOperation as UserOperation<"v0.7">,
 					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContext },
+					context: { ...providerContextResult.extraParam },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`);
@@ -163,16 +158,16 @@ app.post(
 			}
 
 			if (method === "pm_getPaymasterData") {
-				let providerContext: {
-					sponsorshipPolicyId: string;
-				} | null = null;
-
-				providerContext = await getPimlicoContext(
+				const providerContextResult = await getPimlicoContext(
 					userOperation as UserOperation<"v0.7">,
 					entrypoint,
 					chainId,
 					extraParam,
 				);
+
+				if (providerContextResult.result === "reject") {
+					return c.text("Rejected", 403);
+				}
 
 				const result = await paymasterClientV07.getPaymasterData({
 					userOperation: userOperation as UserOperation<"v0.7"> & {
@@ -180,7 +175,7 @@ app.post(
 						paymasterPostOpGasLimit: bigint;
 					},
 					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContext },
+					context: { ...providerContextResult.extraParam },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`);

@@ -17,14 +17,23 @@ const isTestnet = (chainId: number) => {
 	return false;
 };
 
+type PimlicoContextResult =
+	| {
+			result: "sponsor";
+			extraParam: { sponsorshipPolicyId: string } | null;
+	  }
+	| {
+			result: "reject";
+	  };
+
 export async function getPimlicoContext<entryPoint extends EntryPoint>(
 	userOperation: UserOperation<GetEntryPointVersion<entryPoint>>,
 	entryPoint: entryPoint,
 	chainId: bigint,
 	extraParam: unknown,
-) {
+): Promise<PimlicoContextResult> {
 	if (isTestnet(Number(chainId))) {
-		return null;
+		return { result: "sponsor", extraParam: null };
 	}
 
 	const pimlicoClient = createClient({
@@ -65,7 +74,7 @@ export async function getPimlicoContext<entryPoint extends EntryPoint>(
 	}
 
 	if (dappSponsorshipPolicies.length === 0) {
-		return null;
+		return { result: "sponsor", extraParam: null };
 	}
 
 	const validSponsorshipPolicies =
@@ -75,10 +84,13 @@ export async function getPimlicoContext<entryPoint extends EntryPoint>(
 		});
 
 	if (validSponsorshipPolicies.length === 0) {
-		return null;
+		return { result: "reject" };
 	}
 
 	return {
-		sponsorshipPolicyId: validSponsorshipPolicies[0].sponsorshipPolicyId,
+		result: "sponsor",
+		extraParam: {
+			sponsorshipPolicyId: validSponsorshipPolicies[0].sponsorshipPolicyId,
+		},
 	};
 }
