@@ -96,7 +96,7 @@ app.post(
 				const result = await paymasterClientV06.getPaymasterStubData({
 					userOperation: userOperation as UserOperation<"v0.6">,
 					chain: { id: Number(chainId) } as Chain,
-					context: { ...extraParam, ...providerContext },
+					context: { ...providerContext },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`);
@@ -127,7 +127,7 @@ app.post(
 				const result = await paymasterClientV06.getPaymasterData({
 					userOperation: userOperation as UserOperation<"v0.6">,
 					chain: { id: Number(chainId) } as Chain,
-					context: { ...extraParam, ...providerContext },
+					context: { ...providerContext },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`);
@@ -155,7 +155,7 @@ app.post(
 				const result = await paymasterClientV07.getPaymasterStubData({
 					userOperation: userOperation as UserOperation<"v0.7">,
 					chain: { id: Number(chainId) } as Chain,
-					context: { ...extraParam, ...providerContext },
+					context: { ...providerContext },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`);
@@ -180,7 +180,7 @@ app.post(
 						paymasterPostOpGasLimit: bigint;
 					},
 					chain: { id: Number(chainId) } as Chain,
-					context: { ...extraParam, ...providerContext },
+					context: { ...providerContext },
 				});
 
 				console.log(`--> result ${JSON.stringify(result)}`);

@@ -5,6 +5,17 @@ import { pimlicoPaymasterActions } from "permissionless/actions/pimlico";
 import type { EntryPoint, GetEntryPointVersion } from "permissionless/types";
 import { z } from "zod";
 import { getPimlicoUrl } from "./config.js";
+import * as chains from "viem/chains";
+
+const isTestnet = (chainId: number) => {
+	for (const chain of Object.values(chains)) {
+		if (chain.id === chainId) {
+			return !!chain.testnet;
+		}
+	}
+
+	return false;
+};
 
 export async function getPimlicoContext<entryPoint extends EntryPoint>(
 	userOperation: UserOperation<GetEntryPointVersion<entryPoint>>,
@@ -12,6 +23,10 @@ export async function getPimlicoContext<entryPoint extends EntryPoint>(
 	chainId: bigint,
 	extraParam: unknown,
 ) {
+	if (isTestnet(Number(chainId))) {
+		return null;
+	}
+
 	const pimlicoClient = createClient({
 		transport: http(getPimlicoUrl(chainId)),
 	}).extend(pimlicoPaymasterActions(entryPoint));
