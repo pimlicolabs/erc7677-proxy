@@ -3,9 +3,9 @@ import { validator } from "hono/validator";
 import { logger } from "hono/logger";
 import { erc7677RequestSchema, jsonRpcSchema } from "./schemas.js";
 import {
-	ENTRYPOINT_ADDRESS_V06,
-	ENTRYPOINT_ADDRESS_V07,
-	type UserOperation,
+    ENTRYPOINT_ADDRESS_V06,
+    ENTRYPOINT_ADDRESS_V07,
+    type UserOperation,
 } from "permissionless";
 import { fromZodError } from "zod-validation-error";
 import { createClient, http, type Chain } from "viem";
@@ -18,8 +18,8 @@ const app = new Hono();
 app.use(logger());
 
 app.get("/", (c) => {
-	return c.html(
-		`<html>
+    return c.html(
+        `<html>
             <head>
                 <meta name="color-scheme" content="light dark">
             </head>
@@ -33,158 +33,191 @@ Visit <a href="https://github.com/pimlicolabs/erc7677-proxy">the GitHub reposito
                 </pre>
             </body>
         </html>`,
-	);
+    );
 });
 
 app.get("/health", (c) => {
-	return c.text("OK");
+    return c.text("OK");
 });
 
 app.post(
-	"/api/paymaster",
-	validator("json", (value, c) => {
-		const jsonRpcParsed = jsonRpcSchema.safeParse(value);
-		if (!jsonRpcParsed.success) {
-			return c.text("Invalid JSON-RPC Request", 404);
-		}
+    "/api/paymaster",
+    validator("json", (value, c) => {
+        const jsonRpcParsed = jsonRpcSchema.safeParse(value);
+        if (!jsonRpcParsed.success) {
+            return c.text("Invalid JSON-RPC Request", 404);
+        }
 
-		const erc7677Parsed = erc7677RequestSchema.safeParse(jsonRpcParsed.data);
-		if (!erc7677Parsed.success) {
-			return c.json(fromZodError(erc7677Parsed.error), 404);
-		}
+        const erc7677Parsed = erc7677RequestSchema.safeParse(jsonRpcParsed.data);
+        if (!erc7677Parsed.success) {
+            return c.json(fromZodError(erc7677Parsed.error), 404);
+        }
 
-		return erc7677Parsed.data;
-	}),
-	async (c) => {
-		const request = c.req.valid("json");
-		const method = request.method;
-		const [userOperation, entrypoint, chainId, extraParam] = request.params;
+        return erc7677Parsed.data;
+    }),
+    async (c) => {
+        const request = c.req.valid("json");
+        const method = request.method;
+        const [userOperation, entrypoint, chainId, extraParam] = request.params;
 
-		if (
-			env.CHAIN_ID_WHITELIST &&
-			!env.CHAIN_ID_WHITELIST.includes(Number(chainId))
-		) {
-			return c.text(
-				`Unsupported chain. Supported chains are ${env.CHAIN_ID_WHITELIST.join(
-					", ",
-				)}`,
-				404,
-			);
-		}
+        if (
+            env.CHAIN_ID_WHITELIST &&
+            !env.CHAIN_ID_WHITELIST.includes(Number(chainId))
+        ) {
+            return c.text(
+                `Unsupported chain. Supported chains are ${env.CHAIN_ID_WHITELIST.join(
+                    ", ",
+                )}`,
+                404,
+            );
+        }
 
-		console.log(
-			`<-- method ${method} chainId ${chainId} entryPoint ${entrypoint} extraParam ${extraParam}`,
-		);
+        console.log(
+            `<-- method ${method} chainId ${chainId} entryPoint ${entrypoint} extraParam ${extraParam}`,
+        );
+        console.log(extraParam);
 
-		if (entrypoint === ENTRYPOINT_ADDRESS_V06 && env.ENTRYPOINT_V06_ENABLED) {
-			const paymasterClientV06 = createClient({
-				transport: http(getPimlicoUrl(chainId)),
-			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V06));
+        if (entrypoint === ENTRYPOINT_ADDRESS_V06 && env.ENTRYPOINT_V06_ENABLED) {
+            const paymasterClientV06 = createClient({
+                transport: http(getPimlicoUrl(chainId)),
+            }).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V06));
+            if (method === "pm_getPaymasterStubData") {
+                const providerContextResult = await getPimlicoContext(
+                    userOperation as UserOperation<"v0.6">,
+                    entrypoint,
+                    chainId,
+                    extraParam,
+                );
+                console.log("provider", providerContextResult);
+                if (providerContextResult.result === "reject") {
+                    return c.text("Rejected", 403);
+                }
 
-			if (method === "pm_getPaymasterStubData") {
-				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.6">,
-					entrypoint,
-					chainId,
-					extraParam,
-				);
+                const result = await paymasterClientV06.getPaymasterStubData({
+                    userOperation: userOperation as UserOperation<"v0.6">,
+                    chain: { id: Number(chainId) } as Chain,
+                    context: { ...providerContextResult.extraParam },
+                });
 
-				if (providerContextResult.result === "reject") {
-					return c.text("Rejected", 403);
-				}
+                const serializedResult = {
+                    ...result,
+                    paymasterVerificationGasLimit: result.paymasterVerificationGasLimit?.toString(),
+                    paymasterPostOpGasLimit: result.paymasterPostOpGasLimit?.toString()
+                };
 
-				const result = await paymasterClientV06.getPaymasterStubData({
-					userOperation: userOperation as UserOperation<"v0.6">,
-					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContextResult.extraParam },
-				});
+                return c.json({
+                    result: serializedResult,
+                    id: request.id,
+                    jsonrpc: request.jsonrpc,
+                });
+            }
 
-				console.log(`--> result ${JSON.stringify(result)}`);
-				return c.json({
-					result,
-					id: request.id,
-					jsonrpc: request.jsonrpc,
-				});
-			}
+            if (method === "pm_getPaymasterData") {
+                const providerContextResult = await getPimlicoContext(
+                    userOperation as UserOperation<"v0.6">,
+                    entrypoint,
+                    chainId,
+                    extraParam,
+                );
 
-			if (method === "pm_getPaymasterData") {
-				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.6">,
-					entrypoint,
-					chainId,
-					extraParam,
-				);
+                if (providerContextResult.result === "reject") {
+                    return c.text("Rejected", 403);
+                }
 
-				if (providerContextResult.result === "reject") {
-					return c.text("Rejected", 403);
-				}
+                const result = await paymasterClientV06.getPaymasterData({
+                    userOperation: userOperation as UserOperation<"v0.6">,
+                    chain: { id: Number(chainId) } as Chain,
+                    context: { ...providerContextResult.extraParam },
+                });
 
-				const result = await paymasterClientV06.getPaymasterData({
-					userOperation: userOperation as UserOperation<"v0.6">,
-					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContextResult.extraParam },
-				});
+                const serializedResult = {
+                    ...result,
+                    paymasterVerificationGasLimit: result.paymasterVerificationGasLimit?.toString(),
+                    paymasterPostOpGasLimit: result.paymasterPostOpGasLimit?.toString()
+                };
 
-				console.log(`--> result ${JSON.stringify(result)}`);
-				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
-			}
-		}
+                return c.json({
+                    result: serializedResult,
+                    id: request.id,
+                    jsonrpc: request.jsonrpc
+                });
+            }
+        }
 
-		if (entrypoint === ENTRYPOINT_ADDRESS_V07 && env.ENTRYPOINT_V07_ENABLED) {
-			const paymasterClientV07 = createClient({
-				transport: http(getPimlicoUrl(chainId)),
-			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V07));
+        if (entrypoint === ENTRYPOINT_ADDRESS_V07 && env.ENTRYPOINT_V07_ENABLED) {
+            const paymasterClientV07 = createClient({
+                transport: http(getPimlicoUrl(chainId)),
+            }).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V07));
 
-			if (method === "pm_getPaymasterStubData") {
-				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.7">,
-					entrypoint,
-					chainId,
-					extraParam,
-				);
+            if (method === "pm_getPaymasterStubData") {
+                const providerContextResult = await getPimlicoContext(
+                    userOperation as UserOperation<"v0.7">,
+                    entrypoint,
+                    chainId,
+                    extraParam,
+                );
 
-				if (providerContextResult.result === "reject") {
-					return c.text("Rejected", 403);
-				}
+                if (providerContextResult.result === "reject") {
+                    return c.text("Rejected", 403);
+                }
 
-				const result = await paymasterClientV07.getPaymasterStubData({
-					userOperation: userOperation as UserOperation<"v0.7">,
-					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContextResult.extraParam },
-				});
+                const result = await paymasterClientV07.getPaymasterStubData({
+                    userOperation: userOperation as UserOperation<"v0.7">,
+                    chain: { id: Number(chainId) } as Chain,
+                    context: { ...providerContextResult.extraParam },
+                });
 
-				console.log(`--> result ${JSON.stringify(result)}`);
-				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
-			}
+                const serializedResult = {
+                    ...result,
+                    paymasterVerificationGasLimit: result.paymasterVerificationGasLimit?.toString(),
+                    paymasterPostOpGasLimit: result.paymasterPostOpGasLimit?.toString()
+                };
 
-			if (method === "pm_getPaymasterData") {
-				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.7">,
-					entrypoint,
-					chainId,
-					extraParam,
-				);
+                console.log('result', serializedResult);
+                return c.json({
+                    result: serializedResult,
+                    id: request.id,
+                    jsonrpc: request.jsonrpc
+                });
+            }
 
-				if (providerContextResult.result === "reject") {
-					return c.text("Rejected", 403);
-				}
+            if (method === "pm_getPaymasterData") {
+                const providerContextResult = await getPimlicoContext(
+                    userOperation as UserOperation<"v0.7">,
+                    entrypoint,
+                    chainId,
+                    extraParam,
+                );
 
-				const result = await paymasterClientV07.getPaymasterData({
-					userOperation: userOperation as UserOperation<"v0.7"> & {
-						paymasterVerificationGasLimit: bigint;
-						paymasterPostOpGasLimit: bigint;
-					},
-					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContextResult.extraParam },
-				});
+                if (providerContextResult.result === "reject") {
+                    return c.text("Rejected", 403);
+                }
 
-				console.log(`--> result ${JSON.stringify(result)}`);
-				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
-			}
-		}
+                const result = await paymasterClientV07.getPaymasterData({
+                    userOperation: userOperation as UserOperation<"v0.7"> & {
+                        paymasterVerificationGasLimit: bigint;
+                        paymasterPostOpGasLimit: bigint;
+                    },
+                    chain: { id: Number(chainId) } as Chain,
+                    context: { ...providerContextResult.extraParam },
+                });
 
-		return c.text("EntryPoint not supported", 404);
-	},
+                const serializedResult = {
+                    ...result,
+                    paymasterVerificationGasLimit: result.paymasterVerificationGasLimit?.toString(),
+                    paymasterPostOpGasLimit: result.paymasterPostOpGasLimit?.toString()
+                };
+
+                return c.json({
+                    result: serializedResult,
+                    id: request.id,
+                    jsonrpc: request.jsonrpc
+                });
+            }
+        }
+
+        return c.text("EntryPoint not supported", 404);
+    },
 );
 
 export default app;
