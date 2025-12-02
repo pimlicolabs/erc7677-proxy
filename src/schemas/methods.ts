@@ -8,7 +8,7 @@ const pmGetPaymasterDataParamsSchema = z
 		z.looseObject({}),
 		addressSchema,
 		hexNumberSchema,
-		paymasterContextSchema.nullish(),
+		paymasterContextSchema.optional(),
 	])
 	.transform((params) => {
 		const [userOp, entryPoint, chainId, context] = params;

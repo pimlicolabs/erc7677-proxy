@@ -8,7 +8,7 @@ const serverSchema = {
 	PORT: z
 		.string()
 		.transform((val) => Number(val))
-		.default("3000")
+		.default(3000)
 		.describe("The port the server will listen on"),
 	PIMLICO_API_KEY: z.string().describe("Your Pimlico API key"),
 	PIMLICO_SPONSORSHIP_POLICY_IDS: z
@@ -26,6 +26,10 @@ const serverSchema = {
 		.boolean()
 		.default(true)
 		.describe("Whether entrypoint 0.7 is enabled"),
+	ENTRYPOINT_08_ENABLED: z
+		.boolean()
+		.default(true)
+		.describe("Whether entrypoint 0.8 is enabled"),
 	CHAIN_ID_WHITELIST: z
 		.string()
 		.transform((val) => val.split(",").map((v) => Number(v)))

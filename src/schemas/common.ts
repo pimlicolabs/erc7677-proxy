@@ -51,9 +51,4 @@ const hexDataSchema = z
 	})
 	.transform((val) => val.toLowerCase() as Hex);
 
-const hexData32Schema = z
-	.string()
-	.regex(hexData32Pattern, { message: "not valid 32-byte hex data" })
-	.transform((val) => val.toLowerCase() as Hash);
-
-export { addressSchema, hexNumberSchema, hexDataSchema, hexData32Schema };
+export { addressSchema, hexNumberSchema, hexDataSchema };
