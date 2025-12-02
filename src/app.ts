@@ -9,7 +9,7 @@ import {
 	EntryPointVersion,
 } from "viem/account-abstraction";
 import { fromZodError } from "zod-validation-error";
-import { http, type Address, type Chain } from "viem";
+import { http, toHex, type Address, type Chain } from "viem";
 import { env } from "./env.js";
 import { getPimlicoContext } from "./providers.js";
 import { getPimlicoUrl } from "./config.js";
@@ -135,8 +135,29 @@ app.post(
 				? await paymasterClient.getPaymasterStubData(params)
 				: await paymasterClient.getPaymasterData(params);
 
-		console.log(`--> result ${JSON.stringify(result)}`);
-		return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
+		// Convert any bigint fields to hex string before returning.
+		let jsonResponse: any = {
+			...result,
+		};
+
+		if (result.paymasterPostOpGasLimit) {
+			jsonResponse.paymasterPostOpGasLimit = toHex(
+				result.paymasterPostOpGasLimit,
+			);
+		}
+
+		if (result.paymasterVerificationGasLimit) {
+			jsonResponse.paymasterVerificationGasLimit = toHex(
+				result.paymasterVerificationGasLimit,
+			);
+		}
+
+		console.log("--> result", result);
+		return c.json({
+			result: jsonResponse,
+			id: request.id,
+			jsonrpc: request.jsonrpc,
+		});
 	},
 );
 

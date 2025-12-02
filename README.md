@@ -50,3 +50,79 @@ Your endpoint will now be available at `http://localhost:3000/api/paymaster`
 ### Deploy to a provider
 
 It is recommended to deploy the endpoint to a hosting provider like Vercel and assign it a custom domain.
+
+## Example Usage
+
+Example ERC7677 sponsorship flow using this proxy template running locally:
+
+```
+import { createSmartAccountClient } from "permissionless";
+import { http, zeroAddress, createPublicClient } from "viem";
+import {
+	createPaymasterClient,
+	entryPoint08Address,
+} from "viem/account-abstraction";
+import { toSimpleSmartAccount } from "permissionless/accounts";
+import { createPimlicoClient } from "permissionless/clients/pimlico";
+import { baseSepolia } from "viem/chains";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+
+// ======== Setting up consts ========
+const chain = baseSepolia;
+const erc7677ProxyUrl = `http://localhost:3000/api/paymaster`;
+const pimlicoUrl = `https://api.pimlico.io/v2/${chain.id}/rpc?apikey=${process.env.PIMLICO_API_KEY}`;
+
+// ======== Setting up clients ========
+const publicClient = createPublicClient({
+	chain,
+	transport: http(),
+});
+
+const pimlicoClient = createPimlicoClient({
+	transport: http(pimlicoUrl),
+});
+
+const paymasterClient = createPaymasterClient({
+	transport: http(erc7677ProxyUrl),
+});
+
+const account = await toSimpleSmartAccount({
+	client: publicClient,
+	owner: privateKeyToAccount(generatePrivateKey()), // Random private key
+	entryPoint: {
+		address: entryPoint08Address,
+		version: "0.8",
+	},
+});
+
+const smartAccountClient = createSmartAccountClient({
+	client: publicClient,
+	chain,
+	account: account,
+	paymaster: paymasterClient,
+	bundlerTransport: http(pimlicoUrl),
+	userOperation: {
+		estimateFeesPerGas: async () => {
+			const gasPrices = await pimlicoClient.getUserOperationGasPrice();
+			return gasPrices.fast;
+		},
+	},
+});
+
+// ======== Sending UserOperation ========
+const userOpHash = await smartAccountClient.sendUserOperation({
+	calls: [
+		{
+			to: zeroAddress,
+			value: 0n,
+			data: "0x",
+		},
+	],
+});
+
+const receipt = await smartAccountClient.waitForUserOperationReceipt({
+	hash: userOpHash,
+});
+
+console.log(`UserOp included in tx: ${receipt.receipt?.transactionHash}`);
+```
