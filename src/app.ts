@@ -78,7 +78,7 @@ app.post(
 			)}`,
 		);
 
-		// Turn chainId into Chain.
+		// Turn chainId into chain.
 		let chain: Chain | undefined;
 		for (const c of Object.values(chains)) {
 			if (c.id === Number(chainId)) {
