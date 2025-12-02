@@ -4,9 +4,9 @@ import { env } from "./env.js";
 
 export const config = {
 	api: {
-	  bodyParser: false,
+		bodyParser: false,
 	},
-}
+};
 
 const port = env.PORT;
 console.log(`Server is running on port ${port}`);

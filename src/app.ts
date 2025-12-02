@@ -1,18 +1,30 @@
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { logger } from "hono/logger";
-import { erc7677RequestSchema, jsonRpcSchema } from "./schemas.js";
 import {
-	ENTRYPOINT_ADDRESS_V06,
-	ENTRYPOINT_ADDRESS_V07,
-	type UserOperation,
-} from "permissionless";
+	entryPoint06Address,
+	entryPoint07Address,
+	createPaymasterClient,
+	entryPoint08Address,
+	EntryPointVersion,
+} from "viem/account-abstraction";
 import { fromZodError } from "zod-validation-error";
-import { createClient, http, type Chain } from "viem";
+import { http, toHex, type Address, type Chain } from "viem";
 import { env } from "./env.js";
 import { getPimlicoContext } from "./providers.js";
-import { paymasterActionsEip7677 } from "permissionless/experimental";
 import { getPimlicoUrl } from "./config.js";
+import { jsonRpcSchema } from "./schemas/rpc.js";
+import { erc7677RequestSchema } from "./schemas/methods.js";
+import * as chains from "viem/chains";
+
+const entryPoints: Record<
+	Address,
+	{ version: EntryPointVersion; enabled: boolean }
+> = {
+	[entryPoint06Address]: { version: "0.6", enabled: env.ENTRYPOINT_06_ENABLED },
+	[entryPoint07Address]: { version: "0.7", enabled: env.ENTRYPOINT_07_ENABLED },
+	[entryPoint08Address]: { version: "0.8", enabled: env.ENTRYPOINT_08_ENABLED },
+};
 
 const app = new Hono();
 app.use(logger());
@@ -58,132 +70,94 @@ app.post(
 	async (c) => {
 		const request = c.req.valid("json");
 		const method = request.method;
-		const [userOperation, entrypoint, chainId, extraParam] = request.params;
+		const [userOperation, entrypoint, chainId, context] = request.params;
 
+		console.log(
+			`<-- method ${method} chainId ${chainId} entryPoint ${entrypoint} context ${JSON.stringify(
+				context,
+			)}`,
+		);
+
+		// Turn chainId into chain.
+		let chain: Chain | undefined;
+		for (const c of Object.values(chains)) {
+			if (c.id === Number(chainId)) {
+				chain = c;
+				break;
+			}
+		}
+
+		// Validate chain.
 		if (
-			env.CHAIN_ID_WHITELIST &&
-			!env.CHAIN_ID_WHITELIST.includes(Number(chainId))
+			!chain ||
+			(env.CHAIN_ID_WHITELIST && !env.CHAIN_ID_WHITELIST.includes(chain.id))
 		) {
+			const supported =
+				env.CHAIN_ID_WHITELIST?.join(", ") ?? Object.keys(chains).join(", ");
+
 			return c.text(
-				`Unsupported chain. Supported chains are ${env.CHAIN_ID_WHITELIST.join(
-					", ",
-				)}`,
+				`Unsupported chain. Supported chains are ${supported}`,
 				404,
 			);
 		}
 
-		console.log(
-			`<-- method ${method} chainId ${chainId} entryPoint ${entrypoint} extraParam ${extraParam}`,
-		);
-
-		if (entrypoint === ENTRYPOINT_ADDRESS_V06 && env.ENTRYPOINT_V06_ENABLED) {
-			const paymasterClientV06 = createClient({
-				transport: http(getPimlicoUrl(chainId)),
-			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V06));
-
-			if (method === "pm_getPaymasterStubData") {
-				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.6">,
-					entrypoint,
-					chainId,
-					extraParam,
-				);
-
-				if (providerContextResult.result === "reject") {
-					return c.text("Rejected", 403);
-				}
-
-				const result = await paymasterClientV06.getPaymasterStubData({
-					userOperation: userOperation as UserOperation<"v0.6">,
-					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContextResult.extraParam },
-				});
-
-				console.log(`--> result ${JSON.stringify(result)}`);
-				return c.json({
-					result,
-					id: request.id,
-					jsonrpc: request.jsonrpc,
-				});
-			}
-
-			if (method === "pm_getPaymasterData") {
-				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.6">,
-					entrypoint,
-					chainId,
-					extraParam,
-				);
-
-				if (providerContextResult.result === "reject") {
-					return c.text("Rejected", 403);
-				}
-
-				const result = await paymasterClientV06.getPaymasterData({
-					userOperation: userOperation as UserOperation<"v0.6">,
-					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContextResult.extraParam },
-				});
-
-				console.log(`--> result ${JSON.stringify(result)}`);
-				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
-			}
+		// Validate entrypoint.
+		const entryPointConfig = entryPoints[entrypoint];
+		if (!entryPointConfig?.enabled) {
+			return c.text("EntryPoint not supported", 404);
 		}
 
-		if (entrypoint === ENTRYPOINT_ADDRESS_V07 && env.ENTRYPOINT_V07_ENABLED) {
-			const paymasterClientV07 = createClient({
-				transport: http(getPimlicoUrl(chainId)),
-			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V07));
+		// Handle request.
+		const paymasterClient = createPaymasterClient({
+			transport: http(getPimlicoUrl(chain.id)),
+		});
 
-			if (method === "pm_getPaymasterStubData") {
-				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.7">,
-					entrypoint,
-					chainId,
-					extraParam,
-				);
+		const providerContextResult = await getPimlicoContext({
+			userOperation,
+			entryPoint: { address: entrypoint, version: entryPointConfig.version },
+			chain,
+			context,
+		});
 
-				if (providerContextResult.result === "reject") {
-					return c.text("Rejected", 403);
-				}
-
-				const result = await paymasterClientV07.getPaymasterStubData({
-					userOperation: userOperation as UserOperation<"v0.7">,
-					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContextResult.extraParam },
-				});
-
-				console.log(`--> result ${JSON.stringify(result)}`);
-				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
-			}
-
-			if (method === "pm_getPaymasterData") {
-				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.7">,
-					entrypoint,
-					chainId,
-					extraParam,
-				);
-
-				if (providerContextResult.result === "reject") {
-					return c.text("Rejected", 403);
-				}
-
-				const result = await paymasterClientV07.getPaymasterData({
-					userOperation: userOperation as UserOperation<"v0.7"> & {
-						paymasterVerificationGasLimit: bigint;
-						paymasterPostOpGasLimit: bigint;
-					},
-					chain: { id: Number(chainId) } as Chain,
-					context: { ...providerContextResult.extraParam },
-				});
-
-				console.log(`--> result ${JSON.stringify(result)}`);
-				return c.json({ result, id: request.id, jsonrpc: request.jsonrpc });
-			}
+		if (providerContextResult.result === "reject") {
+			return c.text("Rejected", 403);
 		}
 
-		return c.text("EntryPoint not supported", 404);
+		const params = {
+			...userOperation,
+			chainId: chain.id,
+			context: { ...providerContextResult.extraParam },
+			entryPointAddress: entrypoint,
+		};
+
+		const result =
+			method === "pm_getPaymasterStubData"
+				? await paymasterClient.getPaymasterStubData(params)
+				: await paymasterClient.getPaymasterData(params);
+
+		// Convert any bigint fields to hex string before returning.
+		let jsonResponse: any = {
+			...result,
+		};
+
+		if (result.paymasterPostOpGasLimit) {
+			jsonResponse.paymasterPostOpGasLimit = toHex(
+				result.paymasterPostOpGasLimit,
+			);
+		}
+
+		if (result.paymasterVerificationGasLimit) {
+			jsonResponse.paymasterVerificationGasLimit = toHex(
+				result.paymasterVerificationGasLimit,
+			);
+		}
+
+		console.log("--> result", result);
+		return c.json({
+			result: jsonResponse,
+			id: request.id,
+			jsonrpc: request.jsonrpc,
+		});
 	},
 );
 
