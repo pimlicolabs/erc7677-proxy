@@ -55,7 +55,7 @@ It is recommended to deploy the endpoint to a hosting provider like Vercel and a
 
 Example ERC7677 sponsorship flow using this proxy template running locally:
 
-```
+```typescript
 import { createSmartAccountClient } from "permissionless";
 import { http, zeroAddress, createPublicClient } from "viem";
 import {
