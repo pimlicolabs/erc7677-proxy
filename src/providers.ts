@@ -2,7 +2,6 @@ import { createClient, http } from "viem";
 import { env } from "./env.js";
 import type { UserOperation } from "permissionless";
 import { pimlicoPaymasterActions } from "permissionless/actions/pimlico";
-import type { EntryPoint, GetEntryPointVersion } from "permissionless/types";
 import { z } from "zod";
 import { getPimlicoUrl } from "./config.js";
 import * as chains from "viem/chains";
@@ -26,8 +25,8 @@ export type PimlicoContextResult =
 			result: "reject";
 	  };
 
-export async function getPimlicoContext<entryPoint extends EntryPoint>(
-	userOperation: UserOperation<GetEntryPointVersion<entryPoint>>,
+export async function getPimlicoContext(
+	userOperation: UserOperation,
 	entryPoint: entryPoint,
 	chainId: bigint,
 	extraParam: unknown,

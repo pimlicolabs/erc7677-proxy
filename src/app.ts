@@ -1,18 +1,20 @@
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { logger } from "hono/logger";
-import { erc7677RequestSchema, jsonRpcSchema } from "./schemas.js";
 import {
-	ENTRYPOINT_ADDRESS_V06,
-	ENTRYPOINT_ADDRESS_V07,
+	entryPoint06Address,
+	entryPoint07Address,
+	entryPoint08Address,
 	type UserOperation,
-} from "permissionless";
+} from "viem/account-abstraction";
 import { fromZodError } from "zod-validation-error";
-import { createClient, http, type Chain } from "viem";
+import { http, type Chain } from "viem";
 import { env } from "./env.js";
 import { getPimlicoContext } from "./providers.js";
-import { paymasterActionsEip7677 } from "permissionless/experimental";
 import { getPimlicoUrl } from "./config.js";
+import { createPaymasterClient } from "viem/account-abstraction";
+import { jsonRpcSchema } from "./schemas/rpc.js";
+import { erc7677RequestSchema } from "./schemas/methods.js";
 
 const app = new Hono();
 app.use(logger());
@@ -76,14 +78,14 @@ app.post(
 			`<-- method ${method} chainId ${chainId} entryPoint ${entrypoint} extraParam ${extraParam}`,
 		);
 
-		if (entrypoint === ENTRYPOINT_ADDRESS_V06 && env.ENTRYPOINT_V06_ENABLED) {
-			const paymasterClientV06 = createClient({
+		if (entrypoint === entryPoint06Address && env.ENTRYPOINT_06_ENABLED) {
+			const paymasterClient06 = createPaymasterClient({
 				transport: http(getPimlicoUrl(chainId)),
-			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V06));
+			});
 
 			if (method === "pm_getPaymasterStubData") {
 				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.6">,
+					userOperation,
 					entrypoint,
 					chainId,
 					extraParam,
@@ -93,8 +95,8 @@ app.post(
 					return c.text("Rejected", 403);
 				}
 
-				const result = await paymasterClientV06.getPaymasterStubData({
-					userOperation: userOperation as UserOperation<"v0.6">,
+				const result = await paymasterClient06.getPaymasterStubData({
+					...userOperation,
 					chain: { id: Number(chainId) } as Chain,
 					context: { ...providerContextResult.extraParam },
 				});
@@ -109,7 +111,7 @@ app.post(
 
 			if (method === "pm_getPaymasterData") {
 				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.6">,
+					userOperation,
 					entrypoint,
 					chainId,
 					extraParam,
@@ -119,8 +121,8 @@ app.post(
 					return c.text("Rejected", 403);
 				}
 
-				const result = await paymasterClientV06.getPaymasterData({
-					userOperation: userOperation as UserOperation<"v0.6">,
+				const result = await paymasterClient06.getPaymasterData({
+					...userOperation,
 					chain: { id: Number(chainId) } as Chain,
 					context: { ...providerContextResult.extraParam },
 				});
@@ -130,14 +132,14 @@ app.post(
 			}
 		}
 
-		if (entrypoint === ENTRYPOINT_ADDRESS_V07 && env.ENTRYPOINT_V07_ENABLED) {
-			const paymasterClientV07 = createClient({
+		if (entrypoint === entryPoint07Address && env.ENTRYPOINT_07_ENABLED) {
+			const paymasterClient07 = createPaymasterClient({
 				transport: http(getPimlicoUrl(chainId)),
-			}).extend(paymasterActionsEip7677(ENTRYPOINT_ADDRESS_V07));
+			});
 
 			if (method === "pm_getPaymasterStubData") {
 				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.7">,
+					userOperation,
 					entrypoint,
 					chainId,
 					extraParam,
@@ -147,9 +149,9 @@ app.post(
 					return c.text("Rejected", 403);
 				}
 
-				const result = await paymasterClientV07.getPaymasterStubData({
-					userOperation: userOperation as UserOperation<"v0.7">,
-					chain: { id: Number(chainId) } as Chain,
+				const result = await paymasterClient07.getPaymasterStubData({
+					...userOperation,
+					chainId: Number(chainId),
 					context: { ...providerContextResult.extraParam },
 				});
 
@@ -159,7 +161,7 @@ app.post(
 
 			if (method === "pm_getPaymasterData") {
 				const providerContextResult = await getPimlicoContext(
-					userOperation as UserOperation<"v0.7">,
+					userOperation,
 					entrypoint,
 					chainId,
 					extraParam,
@@ -169,11 +171,8 @@ app.post(
 					return c.text("Rejected", 403);
 				}
 
-				const result = await paymasterClientV07.getPaymasterData({
-					userOperation: userOperation as UserOperation<"v0.7"> & {
-						paymasterVerificationGasLimit: bigint;
-						paymasterPostOpGasLimit: bigint;
-					},
+				const result = await paymasterClient07.getPaymasterData({
+					...userOperation,
 					chain: { id: Number(chainId) } as Chain,
 					context: { ...providerContextResult.extraParam },
 				});

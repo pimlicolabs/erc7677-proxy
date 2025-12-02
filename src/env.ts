@@ -1,6 +1,5 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
 
 import { config } from "dotenv";
 config();
@@ -19,14 +18,14 @@ const serverSchema = {
 		.describe(
 			"Comma separated list of Pimlico sponsorship policy IDs to check against on each request",
 		),
-	ENTRYPOINT_V06_ENABLED: z
+	ENTRYPOINT_06_ENABLED: z
 		.boolean()
 		.default(true)
-		.describe("Whether the v0.6 entrypoint is enabled"),
-	ENTRYPOINT_V07_ENABLED: z
+		.describe("Whether entrypoint 0.6 is enabled"),
+	ENTRYPOINT_07_ENABLED: z
 		.boolean()
 		.default(true)
-		.describe("Whether the v0.7 entrypoint is enabled"),
+		.describe("Whether entrypoint 0.7 is enabled"),
 	CHAIN_ID_WHITELIST: z
 		.string()
 		.transform((val) => val.split(",").map((v) => Number(v)))

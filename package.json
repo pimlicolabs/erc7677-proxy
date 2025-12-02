@@ -9,11 +9,11 @@
         "@t3-oss/env-core": "^0.10.1",
         "dotenv": "^16.4.5",
         "hono": "^4.3.7",
-        "permissionless": "^0.1.29",
+        "permissionless": "^0.3.2",
         "tslib": "^2.6.2",
-        "viem": "^2.10.5",
-        "zod": "^3.23.8",
-        "zod-validation-error": "^3.3.0"
+        "viem": "^2.40.3",
+        "zod": "^4.1.13",
+        "zod-validation-error": "^5.0.0"
     },
     "devDependencies": {
         "@biomejs/biome": "^1.7.3",

@@ -6,7 +6,7 @@
 
 This repository contains an ERC-7677 proxy template built with Hono that can be spun up by dapps wishing to sponsor user operations originating from smart account users
 
-- Supports Multiple EntryPoints (v0.6 and v0.7)
+- Supports Multiple EntryPoints (0.6, 0.7, and 0.8)
 - Supporting Multiple Chains at once
 - Configure Pimlico sponsorship policies
 
@@ -28,7 +28,7 @@ On the serverless provider of your choice, create a public URL that will point t
 
 ## Development
 
-### 1. Copy the .env template and edit it, filling in with your paymaster service provider, chain id whitelist, and more. 
+### 1. Copy the .env template and edit it, filling in with your paymaster service provider, chain id whitelist, and more.
 
 ```bash
 cp .env.template .env
